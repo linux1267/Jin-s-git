@@ -1,0 +1,302 @@
+
+
+roid:layout_width="0dp"
+  android:layout_height="wrap_content"
+  app:layout_constraintBottom_toBottomOf="parent"
+  app:layout_constraintEnd_toEndOf="parent"
+  app:layout_constraintStart_toStartOf="parent"
+  app:menu="@menu/bottom_nav_menu" />
+을 만들어 주고, res/menu 폴더를 만들어 준후 item 목록을 작성해준다.
+
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <item
+    android:id="@+id/home"
+    android:icon="@drawable/ic_baseline_home_24"
+    android:title="@string/bottom_nav_home"/>
+
+</menu>
+ 
+
+### 리사이클러뷰 
+<androidx.recyclerview.widget.RecyclerView
+  android:id="@+id/mainRecyclerView"
+  android:layout_width="0dp"
+  android:layout_height="0dp"
+  app:layout_constraintBottom_toBottomOf="parent"
+  app:layout_constraintEnd_toEndOf="parent"
+  app:layout_constraintStart_toStartOf="parent"
+  app:layout_constraintTop_toTopOf="parent" />
+ 
+
+### 프레임 레이아웃 ( FrameLayout ) 
+우리가 잡아 올리고 내리는 중요한 레이아웃이다. 제약조건을 모두 parent에게 줘야한다. 왜냐하면, 스크롤 업 하여 커지게 되면 화면 전체를 차지 하기 때문이다.
+
+<FrameLayout
+  android:id="@+id/fragmentCotanier"
+  android:layout_width="0dp"
+  android:layout_height="0dp"
+  app:layout_constraintBottom_toBottomOf="parent"
+  app:layout_constraintEnd_toEndOf="parent"
+  app:layout_constraintStart_toStartOf="parent"
+  app:layout_constraintTop_toTopOf="parent" />
+ 
+
+### 모션 속성 주기
+START일때는 정상적으로 유지되고 END일때는 아래로 내려가도록 모션을 줘야한다. 디자인에서 create constraint하고, scene.xml을 수정해주자.
+
+<MotionScene 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:motion="http://schemas.android.com/apk/res-auto">
+    <Transition
+        motion:constraintSetEnd="@+id/end"
+        motion:constraintSetStart="@id/start"
+        motion:duration="1000">
+       <KeyFrameSet>
+       </KeyFrameSet>
+    </Transition>
+
+    <ConstraintSet android:id="@+id/start">
+      <Constraint
+        android:id="@+id/mainBottomNavView"
+        motion:layout_constraintEnd_toEndOf="parent"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        motion:layout_constraintBottom_toBottomOf="parent"
+        motion:layout_constraintStart_toStartOf="parent" />
+    </ConstraintSet>
+
+    <ConstraintSet android:id="@+id/end">
+      <Constraint
+        android:id="@+id/mainBottomNavView"
+        motion:layout_constraintEnd_toEndOf="parent"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        motion:layout_constraintBottom_toBottomOf="parent"
+        android:translationY="56dp"
+        motion:layout_constraintStart_toStartOf="parent" />
+    </ConstraintSet>
+</MotionScene>
+STRAT일때는 현상태를 유지하도록, END일때는 translationY를 주어 Y축으로 56DP 이동시켜 밑으로 숨겨버리면 된다.
+
+
+그렇게 속성을 주면 END가 될 시 파란색으로 화면 밖으로 벗어나는게 보인다.
+
+이 후 이 모션을, FrameLayout(== 프래그먼트) 의 모션이 변화할때 같이 동작하도록 엮어주는 작업을 해야한다.
+
+ 
+
+## fragment_player.xml
+ frameLayout에 붙일 fragment를 만들어주자. 가장 핵심 기능이다. 사용할 뷰들을 알맞은 위치에 위치시킨다. 자세한 설명은 생략하겠다. 주의 해야 할점은, 컨테이너로 쓰이는 ConstraintLayout(@+id/mainContainer)안에 view들을 담아주면 개별적으로 뷰들의 위치를 지정시킬 수 없기때문에 안에다가 담지 않는다. 
+
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.motion.widget.MotionLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:app="http://schemas.android.com/apk/res-auto"
+  android:id="@+id/playerMotionLayout"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  app:layoutDescription="@xml/fragment_player_scene">
+  
+  <androidx.constraintlayout.widget.ConstraintLayout
+    android:id="@+id/mainContainerLayout"
+    android:layout_width="0dp"
+    android:layout_height="250dp"
+    android:background="@color/black"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintTop_toTopOf="parent" />
+
+  <ImageView
+    android:id="@+id/videoPlayerView"
+    android:layout_width="0dp"
+    android:layout_height="0dp"
+    android:background="@color/purple_200"
+    app:layout_constraintBottom_toBottomOf="@id/mainContainerLayout"
+    app:layout_constraintStart_toStartOf="@id/mainContainerLayout"
+    app:layout_constraintTop_toTopOf="@id/mainContainerLayout" />
+  
+  <ImageView
+    android:id="@+id/bottomPlayerControlButton"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginEnd="30dp"
+    app:layout_constraintBottom_toBottomOf="@id/mainContainerLayout"
+    app:layout_constraintEnd_toEndOf="@id/mainContainerLayout"
+    app:layout_constraintTop_toTopOf="@id/mainContainerLayout" />
+
+  <TextView
+    android:id="@+id/textView"
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="8dp"
+    android:layout_marginEnd="12dp"
+    android:maxLines="1"
+    android:singleLine="true"
+    app:layout_constraintBottom_toBottomOf="@id/bottomPlayerControlButton"
+    app:layout_constraintEnd_toEndOf="@id/bottomPlayerControlButton"
+    app:layout_constraintStart_toEndOf="@id/videoPlayerView"
+    app:layout_constraintTop_toTopOf="@id/bottomPlayerControlButton" />
+  
+  <androidx.recyclerview.widget.RecyclerView
+    android:id="@+id/fragmentRecyclerView"
+    android:layout_width="0dp"
+    android:layout_height="0dp"
+    android:background="@color/teal_200"
+    app:layout_constraintBottom_toBottomOf="parent"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintTop_toBottomOf="@id/mainContainerLayout" />
+</androidx.constraintlayout.motion.widget.MotionLayout>
+이렇게 기본 레이아웃을 만들어주고, 모션을 입혀준다. 위에서 같은 방법으로 하면 된다.
+
+ 
+
+## fragment_player_scene.xml
+<MotionScene xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:motion="http://schemas.android.com/apk/res-auto">
+
+  <Transition
+    motion:constraintSetEnd="@+id/end"
+    motion:constraintSetStart="@id/start"
+    motion:duration="1000">
+    <KeyFrameSet></KeyFrameSet>
+    <OnSwipe
+      motion:touchAnchorId="@+id/mainContainerLayout"
+      motion:touchAnchorSide="bottom" />
+  </Transition>
+
+  <ConstraintSet android:id="@+id/start">
+    <Constraint
+      android:id="@+id/fragmentRecyclerView"
+      android:layout_width="0dp"
+      android:layout_height="0.1dp"
+      android:layout_marginBottom="66dp"
+      motion:layout_constraintBottom_toBottomOf="parent"
+      motion:layout_constraintEnd_toEndOf="parent"
+      motion:layout_constraintStart_toStartOf="parent"
+      motion:layout_constraintTop_toBottomOf="@id/mainContainerLayout"
+      motion:layout_constraintVertical_bias="1.0" />
+    <Constraint
+      android:id="@+id/mainContainerLayout"
+      android:layout_width="0dp"
+      android:layout_height="56dp"
+      android:layout_marginBottom="66dp"
+      motion:layout_constraintBottom_toBottomOf="parent"
+      motion:layout_constraintEnd_toEndOf="parent"
+      motion:layout_constraintStart_toStartOf="parent"
+      motion:layout_constraintTop_toTopOf="parent"
+      motion:layout_constraintVertical_bias="1.0" />
+    <Constraint
+      android:id="@+id/videoPlayerView"
+      android:layout_width="0dp"
+      android:layout_height="0dp"
+      motion:layout_constraintBottom_toBottomOf="@id/mainContainerLayout"
+      motion:layout_constraintDimensionRatio="H,1:2.5"
+      motion:layout_constraintStart_toStartOf="@id/mainContainerLayout"
+      motion:layout_constraintTop_toTopOf="@id/mainContainerLayout" />
+  </ConstraintSet>
+
+  <ConstraintSet android:id="@+id/end">
+    <Constraint
+      android:id="@+id/videoPlayerView"
+      android:layout_width="0dp"
+      android:layout_height="0dp"
+      motion:layout_constraintBottom_toBottomOf="@id/mainContainerLayout"
+      motion:layout_constraintEnd_toEndOf="@id/mainContainerLayout"
+      motion:layout_constraintStart_toStartOf="@id/mainContainerLayout"
+      motion:layout_constraintTop_toTopOf="@id/mainContainerLayout" />
+    <Constraint
+      android:id="@+id/mainContainerLayout"
+      android:layout_width="0dp"
+      android:layout_height="250dp"
+      motion:layout_constraintEnd_toEndOf="parent"
+      motion:layout_constraintStart_toStartOf="parent"
+      motion:layout_constraintTop_toTopOf="parent" />
+    <Constraint
+      android:id="@+id/fragmentRecyclerView"
+      android:layout_width="0dp"
+      android:layout_height="0dp"
+      motion:layout_constraintBottom_toBottomOf="parent"
+      motion:layout_constraintEnd_toEndOf="parent"
+      motion:layout_constraintStart_toStartOf="parent"
+      motion:layout_constraintTop_toBottomOf="@id/mainContainerLayout" />
+  </ConstraintSet>
+</MotionScene>
+처음 사용해보는 레이아웃들이기 때문에, 모든 레이아웃 코드를 하나하나 기록해두려고 한다. 다음부터는 당연히 자세한 xml코드들은 생략할거다!
+
+## Swipe Handler 입히기
+지금까지 완성한 코드를 실행해보면 당연히 터치에 대한 별다른 이벤트가 동작하지 않는다.
+
+
+다음과 같이 스와이프 핸들러를 추가해준다. Anchor Side같은 경우는 정확히 무슨 동작을 하는지는 모르겠다. TOP, BOTTOM두개다 해봤는데 똑같이 동작하기는 했다.
+
+
+
+공식 문서의 설명은 위와 같다. 
+
+ 
+
+# 액티비티 구성하기
+ 실행시키기 위해서는 프레임레이아웃에 playerFragment를 붙여야 한다. 옛날에 바텀 내비게이션뷰를 클릭할시 프레임을 바꿔주는 것을 했었는데 비슷하다고 보면된다. 확실히 써보니까 이해가 되는게, 프레임 레이아웃이 조금씩 무슨 기능을 하는지 알 것 같다.
+
+override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    setContentView(R.layout.activity_main)
+
+    // 프레임에 프래그먼트 붙이기
+    supportFragmentManager.beginTransaction()
+        .replace(R.id.fragmentCotanier, PlayerFragment())
+        .commit()
+}
+ 
+
+# 프래그먼트 구성하기
+## 프래그먼트에 view binding
+ 프래그먼트에서는 플레이어가 스와이프(drag-up, drag-down)될때 반응해야 한다. 해당 동작을 구현해보자
+
+class PlayerFragment : Fragment(R.layout.fragment_player) {
+
+    /* 프래그먼트에서 바인딩을 해제하기 위해서 
+    onDestroy에서 null로 없애줘야함
+    그래서 null 허용형으로 선언함 */
+
+    private var binding : FragmentPlayerBinding? = null
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        val fragmentPlayerBinding = FragmentPlayerBinding.bind(view)
+        binding = fragmentPlayerBinding
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        binding = null
+    }
+}
+ 먼저 프래그먼트를 구성해준다. onDestroy시 binding을 해제해주면서 메모리 누수를 막아줘야 한다고 한다. 그렇게 하기 위해서 binding을 전역으로 선언할시 nullable하게 선언해준다.
+
+ 이후 fragmentPlayerBinding을 지역에서 선언하여 사용하여 null을 검사하는 일을 없애도록 한다.
+
+ 
+
+## TransitionListener 달기
+private var binding : FragmentPlayerBinding? = null
+override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    super.onViewCreated(view, savedInstanceState)
+    val fragmentPlayerBinding = FragmentPlayerBinding.bind(view)
+    binding = fragmentPlayerBinding
+
+    // 바인딩이 Nullable이 아니기 떄문에 전역사용 안함
+    fragmentPlayerBinding.playerMotionLayout.setTransitionListener(object : MotionLayout.TransitionListener{
+        override fun onTransitionStarted(motionLayout: MotionLayout?, startId: Int, endId: Int,) {}
+        override fun onTransitionChange(motionLayout: MotionLayout?, startId: Int, endId: Int, progress: Float, ) {
+            binding?.let { mBinding ->
+                // activity == getActivity => 현재 프래그먼트가 붙은 액티비티를 가져오게
+                (activity as MainActivity).also { mainActivity ->
+                        mainActivity.findViewById<MotionLayout>(R.id.mainMotionLayout).progress = abs(progress)
+                }
+            }
+        }
+        override fun onTransitionCompleted(motionLayout: MotionLayout?, currentId: Int) {}
+        override fun onTransitionTrigger(motionLayout: MotionLayout?, triggerId: Int, positive: Boolean, progress: Float, ) {}
+    })
+}

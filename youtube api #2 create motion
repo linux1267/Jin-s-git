@@ -1,0 +1,165 @@
+//   mock api 만들기
+//   동영상 타이틀, 서브타이틀, 썸네일, mp4파일과 같이 API호출을 통해서 받아와야 한다. 
+
+
+{
+  "videos": [
+        {
+          "description": "Big Buck Bunny tells the story of a giant rabbit with a heart bigger than himself. When one sunny day three rodents rudely harass him, something snaps... and the rabbit ain't no bunny anymore! In the typical cartoon tradition he prepares the nasty rodents a comical revenge.\n\nLicensed under the Creative Commons Attribution license\nhttps://www.bigbuckbunny.org",
+          "sources": 
+            "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+          ,
+          "subtitle": "By Blender Foundation",
+          "thumb": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg",
+          "title": "Big Buck Bunny"
+        },{
+        
+        // ...
+        
+        },
+}   
+
+
+ // 서버 통신을 위한 데이터 구성을 해야한다. 
+ 
+ 
+data class VideoDto(
+    @SerializedName("videos") val videos : List<VideoData>
+)
+data class VideoData (
+        val title : String,
+        val subtitle : String,
+        val description : String,
+        val thumb : String,
+        val sources : String,
+
+
+
+// 리사이클러뷰 어댑터 및 레트로핏 서비스로 GET 호출
+받아온 API를 뿌려주기 위해 리사이클러뷰를 만들어주고 어댑터를 만들어 준다. 리사이클러뷰 어댑터는 너무 많이 만들었기 때문에 생략하겠다. 
+이제 레트로핏으로 데이터를 받아오는 함수를 만들어 준다. 로그를 찍어서 데이터가 잘오는지도 한번 확인해주고, submitList로 리사이클러뷰에 데이터를 넣어준다.
+
+private fun getVideos() {
+    val retrofit = Retrofit.Builder()
+        .baseUrl("https://run.mocky.io/")
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
+    val service = retrofit.create(RetrofitService::class.java)
+    service.getVideos().enqueue(object : Callback<VideoDto>{
+        override fun onResponse(call: Call<VideoDto>, response: Response<VideoDto>) {
+            if(response.isSuccessful.not()){
+                Toast.makeText(this@MainActivity,"response fail",Toast.LENGTH_SHORT).show()
+            }
+            val data = response.body()
+            data?.let { videoDto ->
+                videoAdapter.submitList(videoDto.videos)
+                videoDto.videos.forEach { video ->
+                    Log.d("Retrofit",video.toString())
+                }
+            }
+        }
+
+        override fun onFailure(call: Call<VideoDto>, t: Throwable) {
+            Toast.makeText(this@MainActivity,"onFailure data",Toast.LENGTH_SHORT).show()
+        }
+    })
+}
+
+
+//# CustomMotionLayout.kt
+구현하는 로직은 지금 터치한 곳이 mainContainer인지 아닌지를 알아내는 것이다.
+
+
+class CustomMotionLayout(context : Context, attributeSet: AttributeSet? = null) : MotionLayout(context, attributeSet) {
+    // 메인 컨테이너를 눌렀을때 모션레이아웃 드래그가 되기 위한 변수
+    private var motionTouchStarted = false
+
+    private val mainContainerView by lazy { findViewById<View>(R.id.mainContainerLayout) }
+    private val hitRect = Rect()
+
+    init {
+        setTransitionListener(object : TransitionListener{
+            override fun onTransitionStarted(motionLayout: MotionLayout?, startId: Int, endId: Int, ) {}
+            override fun onTransitionChange(motionLayout: MotionLayout?, startId: Int, endId: Int, progress: Float, ) {}
+            override fun onTransitionCompleted(motionLayout: MotionLayout?, currentId: Int) {
+                motionTouchStarted = false
+            }
+            override fun onTransitionTrigger(motionLayout: MotionLayout?, triggerId: Int, positive: Boolean, progress: Float, ) {}
+
+        })
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        Log.d("MotionLayout","onTouchEvent is called!!")
+        when(event.actionMasked){
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                motionTouchStarted = false
+                return super.onTouchEvent(event)
+            }
+        }
+        if (!motionTouchStarted) {
+            mainContainerView.getHitRect(hitRect)
+            motionTouchStarted = hitRect.contains(event.x.toInt(), event.y.toInt())
+            Log.d("MotionLayout","motionTouchStarted : $motionTouchStarted")
+        }
+        return super.onTouchEvent(event) && motionTouchStarted
+    }
+
+    private val gestureListener by lazy {
+        object : GestureDetector.SimpleOnGestureListener(){
+            override fun onScroll(e1: MotionEvent, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
+                mainContainerView.getHitRect(hitRect)
+                return hitRect.contains(e1.x.toInt(), e1.y.toInt())
+            }
+        }
+    }
+
+    private val gestureDetector by lazy {
+        GestureDetector(context,gestureListener)
+    }
+
+    override fun onInterceptTouchEvent(event: MotionEvent?): Boolean {
+        return gestureDetector.onTouchEvent(event)
+    }
+
+
+// 리사이클러뷰 클릭 리스너 추가하기
+//리사이클러뷰의 요소를 클릭하면 해당 동영상이 재생되고, 프레임레이아웃에 현재 재생중인 영상의 타이틀로 변경하는 작업을 해야한다. 영상을 띄우는 player는 일단 함수로 만들어 놓고, 
+//클릭 리스너를 먼저 만들어 주도록 한다.
+//어댑터에 클릭 리스너를 달아준다. 타이틀과 데이터 소스를 인자로 받아줘야지, 콜백함수에서 해당 동영상을 플레이 시킬 수 있을 것이다.
+
+
+class VideoAdpater(val mClickListener : (String,String)-> Unit) : ListAdapter<VideoData,VideoAdpater.ViewHolder>(diffUtill) {
+    inner class ViewHolder(private val view : View) : RecyclerView.ViewHolder(view){
+        val title = view.findViewById<TextView>(R.id.titleText)
+        val subTitle = view.findViewById<TextView>(R.id.subTitleText)
+        val thumbImg = view.findViewById<ImageView>(R.id.thumbnailImage)
+        fun bind(data : VideoData) {
+            title.text = data.title
+            subTitle.text = data.subtitle
+            view.setOnClickListener {
+                mClickListener(data.title, data.sources)
+            }
+            // 썸네일 이미지 바인딩
+            Glide.with(thumbImg.context)
+                .load(data.thumb)
+                .transform(CenterCrop())
+                .into(thumbImg)
+        }
+    }
+videoAdpater = VideoAdpater(mClickListener = { title,url ->
+    playVideo(title,url)
+})
+
+// 메인 리사이클러뷰 설정
+videoAdapter = VideoAdpater(mClickListener = { title,url ->
+    supportFragmentManager.fragments.find { it is PlayerFragment }?.let {
+        (it as PlayerFragment).playVideo(title,url)
+    }
+})
+
+
+
+
+
